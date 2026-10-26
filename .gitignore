@@ -1,0 +1,40 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+!.env.template
+.aws/
+.codex/
+.agents/
+
+# Generated training data and caches
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+node_modules/
+wandb/
+outputs/
+checkpoints/
+*.log
+
+# Local datasets and experimental reports
+/data/OPD/datasets/
+/data/OPD/doc/
+/data/OPD/scripts/val/data/
+/data/OPD/LlamaFactory/data/
+*.parquet
+*.arrow
+*.pkl
+*.pickle
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.csv
+*.jsonl
+ray_runtime_env_generation_*.txt
+
+# Exclude upstream project README
+/data/OPD/README.md

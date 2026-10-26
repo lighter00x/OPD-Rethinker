@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  verl:
+    image: docker.1panel.live/verlai/verl:vllm017.latest
+    container_name: verl-head
+
+    # 使用宿主机网络：NCCL 多节点跨机通信必须，避免 NAT 导致的连接问题
+    network_mode: host
+
+    # 共享宿主机 IPC：单机多卡 NCCL all-reduce 共享内存通信必须
+    ipc: host
+
+    # 提升系统资源限制，防止 NCCL 大规模通信报错
+    ulimits:
+      memlock: -1
+      stack: 67108864
+
+    # 透传全部 6 张 3090
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+    volumes:
+      # 根据实际路径修改，建议两台机器挂载同一 NFS 到相同路径
+      - /mnt/sda_8t/share/data_xq/data_verl:/workspace/data
+      # 方便启动脚本等
+      - /home/xq/source/verl_docker/data:/workspace/code
+      # SSH 密钥只读挂入，容器内节点间通信使用
+      - ~/.ssh:/root/.ssh:ro
+
+    environment:
+      # ===== NCCL 网络配置 =====
+      # 两台机器活跃网卡均为 ens5f0
+      - NCCL_SOCKET_IFNAME=ens5f0
+      # 无 InfiniBand，禁用 IB，强制走以太网
+      - NCCL_IB_DISABLE=1
+      # 正常运行用 WARN；排查问题时改为 INFO
+      - NCCL_DEBUG=WARN
+      # 防止大模型 save checkpoint 时 NCCL 超时（秒）
+      - NCCL_TIMEOUT=1800
+      # 万兆网卡开启 TCP buffer 优化
+      - NCCL_SOCKET_NTHREADS=4
+      - NCCL_NSOCKS_PERTHREAD=4
+
+      # ===== GPU =====
+      - CUDA_VISIBLE_DEVICES=0,1,2,3,4,5
+
+      # ===== Python =====
+      - PYTHONUNBUFFERED=1
+      - HF_HOME=/workspace/data/models/hf_cache
+
+      # ===== Ray =====
+      # head 节点地址，两台机器保持一致
+      - RAY_HEAD_ADDR=10.154.24.41
+      - NCCL_P2P_DISABLE=1
+      - NCCL_SHM_DISABLE=1
+      - NCCL_IB_DISABLE=1
+      - NCCL_NET=Socket
+
+    # 容器常驻，手动进入执行任务
+    command: >
+      bash -c "
+        cd /workspace/code &&
+        if [ ! -d verl/.git ]; then git clone https://github.com/volcengine/verl.git; fi &&
+        cd verl && pip install -e '.[all]' --no-deps &&
+        echo '===== veRL installed =====' &&
+        ray start --head --port=6379 --num-gpus=6 --dashboard-host=0.0.0.0 --dashboard-port=8265 &&
+        echo '===== Ray HEAD started =====' &&
+        sleep infinity
+      "
+    restart: unless-stopped

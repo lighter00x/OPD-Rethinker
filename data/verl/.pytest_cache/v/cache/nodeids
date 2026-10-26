@@ -1,0 +1,6 @@
+[
+  "tests/trainer/distillation/test_opd_dynamic_metrics.py::test_opd_dynamic_metrics_ignore_padding_and_handle_zero_overlap",
+  "tests/trainer/distillation/test_opd_dynamic_metrics.py::test_opd_dynamic_metrics_match_paper_definitions",
+  "tests/trainer/distillation/test_opd_student_topk.py::test_opd_loss_and_gradient_match_released_formula",
+  "tests/trainer/distillation/test_opd_student_topk.py::test_response_topk_fields_align_with_prediction_positions"
+]

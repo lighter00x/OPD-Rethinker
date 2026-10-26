@@ -1,0 +1,3 @@
+{
+  "tests/trainer/distillation/test_opd_student_topk.py": true
+}
